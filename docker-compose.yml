@@ -1,27 +1,53 @@
 services:
   cs2-server:
-    image: 'cs2-arm64'
-    container_name: 'cs2-server'
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: cs2-server
+
+    # Ressourcen-Limits direkt in der Compose (Single Source of Truth)
+    deploy:
+      resources:
+        limits:
+          cpus: '3.5'
+          memory: 20G
+    
+    # Port-Mapping laut Guide (Outside of Proxy control)
     ports:
-      - '27015:27015/udp'
-      - '27015:27015/tcp'
-    restart: 'unless-stopped'
+      - "27015:27015/udp"
+      - "27015:27015/tcp"
+      - "27020:27020/udp"
+      - "26900:26900/udp"
+      - "27005:27005/udp"
+
+    restart: unless-stopped
     ulimits:
       nice:
         soft: -20
         hard: -20
+        
     environment:
-      - EXTRA_PARAMS=+mat_queue_mode 2 -nojoy -nohltv +engine_no_focus_sleep 0 +fps_max 64 +sv_max_usercmd_future_ticks 8 +sv_hibernate_when_empty 0 +map de_dust2
-      - ALWAYS_UPDATE_ON_START=true # need to be set to false if you install modding
-      - INSTALL_MODDING=false # true or false
-      - STEAM_GAMESERVER_API=
-      - DOTNET_EnableWriteXorExecute=1 # DO NOT REMOVE, WILL BREAK CounterStrikeSharp
-      # DOTNET_TieredCompilation=0
-      - CPU_CORE_COUNT=3 # oracle cloud maxed out always free ocpu is 4
+      - STEAM_GAMESERVER_API=${STEAM_TOKEN:?}
+      - EXTRA_PARAMS=${EXTRA_PARAMS}
+      - ALWAYS_UPDATE_ON_START=${ALWAYS_UPDATE_ON_START:-true}
+      - INSTALL_MODDING=${INSTALL_MODDING:-false}
+      - DOTNET_EnableWriteXorExecute=1
+      - CPU_CORE_COUNT=${CPU_CORE_COUNT:?3}
+      
     volumes:
-      - './cs2-data:/cs2-data'
-      - './init-server.sh:/home/steam/init-server.sh:rw'
-      - './fex-data:/home/steam/.fex-emu'
+      # Formatierung nach deinem Guide (is_directory: true)
+      - type: bind
+        source: ./cs2-data
+        target: /cs2-data
+        is_directory: true
+      - type: bind
+        source: ./fex-data
+        target: /home/steam/.fex-emu
+        is_directory: true
+      - type: bind
+        source: ./init-server.sh
+        target: /home/steam/init-server.sh
+      
     stdin_open: true
     tty: true
     entrypoint: /home/steam/init-server.sh
