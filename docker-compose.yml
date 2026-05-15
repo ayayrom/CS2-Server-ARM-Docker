@@ -36,16 +36,13 @@ services:
       - TZ=Europe/Berlin
       
     volumes:
-      # Formatierung nach deinem Guide (is_directory: true)
-      - type: bind
-        source: ./cs2-data
-        target: /cs2-data
-        is_directory: true
-      - type: bind
-        source: ./fex-data
-        target: /home/steam/.fex-emu
-        is_directory: true
+      - cs2-data:/cs2-data
+      - fex-data:/home/steam/.fex-emu
       
     stdin_open: true
     tty: true
     entrypoint: /home/steam/init-server.sh
+
+volumes:
+  cs2-data:
+  fex-data:
