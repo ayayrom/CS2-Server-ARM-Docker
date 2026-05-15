@@ -32,6 +32,9 @@ RUN ln -snf /usr/share/zoneinfo/Europe/Berlin /etc/localtime && echo Europe/Berl
 COPY --from=builder /usr/bin/FEX* /usr/bin/
 
 RUN useradd -m steam
+
+COPY --chown=steam:steam --chmod=755 init-server.sh /home/steam/init-server.sh
+
 USER steam
 
 WORKDIR /home/steam/Steam
