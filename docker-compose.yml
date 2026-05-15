@@ -33,6 +33,7 @@ services:
       - INSTALL_MODDING=${INSTALL_MODDING:-false}
       - DOTNET_EnableWriteXorExecute=1
       - CPU_CORE_COUNT=${CPU_CORE_COUNT:?3}
+      - TZ=Europe/Berlin
       
     volumes:
       # Formatierung nach deinem Guide (is_directory: true)
