@@ -12,15 +12,25 @@ services:
         soft: -20
         hard: -20
     environment:
+      - STEAM_GAMESERVER_API=${STEAM_GAMESERVER_API:-}
+      - STARTUP_MAP=${STARTUP_MAP:-de_dust2}
+
+      - CPU_CORE_COUNT=${CPU_CORE_COUNT:-3}
+      - PUID=${PUID:-1000}
+      - PGID=${PGID:-1000}
+
+      - ALWAYS_UPDATE_ON_START=${ALWAYS_UPDATE_ON_START:-true}
+      - INSTALL_MODDING=${INSTALL_MODDING:-false}
+      - DOTNET_EnableWriteXorExecute=1
+      # - ALWAYS_UPDATE_ON_START=true # need to be set to false if you install modding
+      # - INSTALL_MODDING=false # true or false
+      # - STEAM_GAMESERVER_API=
+      # - DOTNET_EnableWriteXorExecute=1 # DO NOT REMOVE, WILL BREAK CounterStrikeSharp
+      # # DOTNET_TieredCompilation=0
+      # - CPU_CORE_COUNT=3 # oracle cloud maxed out always free ocpu is 4
+      # - PUID=1000
+      # - PGID=1000
       - EXTRA_PARAMS=+mat_queue_mode 2 -nojoy -nohltv +engine_no_focus_sleep 0 +fps_max 64 +sv_max_usercmd_future_ticks 8 +sv_hibernate_when_empty 0 +map de_dust2
-      - ALWAYS_UPDATE_ON_START=true # need to be set to false if you install modding
-      - INSTALL_MODDING=false # true or false
-      - STEAM_GAMESERVER_API=
-      - DOTNET_EnableWriteXorExecute=1 # DO NOT REMOVE, WILL BREAK CounterStrikeSharp
-      # DOTNET_TieredCompilation=0
-      - CPU_CORE_COUNT=3 # oracle cloud maxed out always free ocpu is 4
-      - PUID=1000
-      - PGID=1000
     volumes:
       - './cs2-data:/cs2-data'
       - './init-server.sh:/home/steam/init-server.sh:rw'
