@@ -50,10 +50,21 @@ setup_fex() {
   fi
 }
 
+#steamcmd initialization
+setup_steamcmd() {
+  echo "Initializing SteamCMD"
+  cd "$STEAMCMD_DIR" || exit 1
+
+  FEXBash './steamcmd.sh +quit'
+
+
+}
+
 main() {
   setup_fex
 }
 
+main
 
 
 
