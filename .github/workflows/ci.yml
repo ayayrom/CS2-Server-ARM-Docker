@@ -42,12 +42,12 @@ jobs:
           platforms: linux/arm64
           load: true
           tags: cs2-arm64:${{ matrix.dockerfile }}-ci
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
+          cache-from: type=gha,scope=cs2-${{ matrix.dockerfile }}
+          cache-to: type=gha,scope=cs2-${{ matrix.dockerfile }},mode=max
 
       - name: Save image for next job
         run: |
-          docker save cs2-arm64:${{ matrix.dockerfile }}-ci -o /tmp/image-${{ matrix.dockerfile }}.}.tar
+          docker save cs2-arm64:${{ matrix.dockerfile }}-ci -o /tmp/image-${{ matrix.dockerfile }}.tar
 
       - name: Upload image artifact
         uses: actions/upload-artifact@v7
@@ -65,14 +65,14 @@ jobs:
         dockerfile: [Dockerfile, Dockerfile.generic]
     steps:
       - name: Download image artifact
-        uses: actions/download-artifact@v8
+        uses: actions/download-artifact@v7
         with:
           name: docker-image-${{ matrix.dockerfile }}
           path: /tmp
 
       - name: Load image into Docker
         run: |
-          docker load -i /tmp/image-${{ matrix.dockerfile }}.}.tar
+          docker load -i /tmp/image-${{ matrix.dockerfile }}.tar
           docker image ls cs2-arm64
 
       - name: Run server in test mode
