@@ -38,9 +38,27 @@ jobs:
         uses: docker/build-push-action@v7
         with:
           context: .
-          file: ./Dockerfile.generic
+          file: ./${{ matrix.dockerfile }}
           platforms: linux/arm64
-          push: false
+          load: true
           tags: cs2-arm64:${{ matrix.dockerfile }}-ci
           cache-from: type=gha
           cache-to: type=gha,mode=max
+
+  server-build-test:
+    name: Test server startup
+    runs-on: ubuntu-22.04-arm
+    needs: build-test
+    strategy:
+      matrix:
+        dockerfile: [Dockerfile, Dockerfile.generic]
+    steps:
+      - name: Run server in test mode
+        run: |
+          docker run \
+            --rm \
+            -e CI_TEST_MODE=true \
+            -e ENABLE_MODDING=false \
+            -e ALWAYS_UPDATE_ON_START=false \
+            -e STEAM_GAMESERVER_API=00000000000000000000000000000000 \
+            cs2-arm64:${{ matrix.dockerfile }}-ci
