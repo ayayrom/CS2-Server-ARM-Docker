@@ -8,8 +8,8 @@ export FEX_ROOTFS="/home/steam/.fex-emu/RootFS/Ubuntu_22_04"
 if [ "$(id -u)" -eq 0 ]; then
   echo "Container started as root. Applying PUID/PGID and dropping privileges..."
   
-  PUID=${PUID:-1000}
-  PGID=${PGID:-1000}
+  PUID=${PUID:-1001}
+  PGID=${PGID:-1001}
   
   groupmod -o -g "$PGID" steam
   usermod -o -u "$PUID" steam
@@ -115,7 +115,7 @@ patch_gameinfo() {
   if [ -f "$gameinfo_path" ]; then
     if [ "$action" == "install" ] && ! grep -q "addons/metamod" "$gameinfo_path"; then
       echo "Patching gameinfo.gi for Metamod"
-      sed -i '/Game_LowViolence/a \t\t\tGame\tcsgo/addons/metamod' "$gameinfo_path"
+      sed -i '/Game_LowViolence/a \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ Game\tcsgo/addons/metamod' "$gameinfo_path"
     elif [ "$action" == "remove" ] && grep -q "addons/metamod" "$gameinfo_path"; then
       echo "Removing Metamod hook from gameinfo.gi"
       sed -i '/addons\/metamod/d' "$gameinfo_path"
