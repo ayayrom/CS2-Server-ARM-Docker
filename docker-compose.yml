@@ -22,6 +22,7 @@ services:
 
       ALWAYS_UPDATE_ON_START: ${ALWAYS_UPDATE_ON_START:-true}
       ENABLE_MODDING: ${ENABLE_MODDING:-false}
+      # CHANGE DOTNET TO 0 IF USING MODDING
       DOTNET_EnableWriteXorExecute: 1
       MMS_URL: ${MMS_URL:-}
       CSS_URL: ${CSS_URL:-}
