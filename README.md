@@ -98,3 +98,5 @@ To be honest, a lot of GPT was used to make this project. Most of the time, when
 However, it works.
 
 I have also tried to compress [zThundy/CS2-Server-on-ARM](https://github.com/zThundy/CS2-Server-on-ARM)'s Box64 implementation into a docker compose file, but it was riddled with segmentation faults left and right. When Box64 comes to be more stable, I will attempt it again, but for now, FEX will do.
+
+[FEX](https://github.com/FEX-Emu/FEX) hella goated, yall should check it out
