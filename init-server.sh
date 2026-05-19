@@ -3,6 +3,7 @@
 CS2_DIR="/cs2-data"
 GAME_DIR="$CS2_DIR/game/csgo"
 STEAMCMD_DIR="/home/steam/Steam"
+export FEX_ROOTFS="/home/steam/.fex-emu/RootFS/Ubuntu_22_04"
 
 if [ "$(id -u)" -eq 0 ]; then
   echo "Container started as root. Applying PUID/PGID and dropping privileges..."
