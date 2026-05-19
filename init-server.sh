@@ -57,7 +57,51 @@ setup_steamcmd() {
 
   FEXBash './steamcmd.sh +quit'
 
+  mkdir -p /home/steam/.steam/sdk64
+  ln -sfn "$STEAMCMD_DIR/linux64/steamclient.so" /home/steam/.steam/sdk64/steamclient.so
+}
 
+# helper function to update game files
+update_game_files() {
+  echo "Running SteamCMD update for 730 (CS2)"
+  cd "$STEAMCMD_DIR" || exit 1
+  FEXBash './steamcmd.sh +@sSteamCmdForcePlatformBitness 64 +force_install_dir "/cs2-data" +login anonymous +app_update 730 validate +quit'
+}
+
+# makes sure the server is up to date
+manage_game_server() {
+  echo "Checking server files"
+  export SERVER_JUST_UPDATED='false'
+  local appmanifest="$CS2_DIR/steamapps/appmanifest_730.acf"
+
+  # checking if the game files exist
+  if [ ! -f "$CS2_DIR/game/bin/linuxsteamrt64/cs2" ] || [ ! -f "$appmanifest" ]; then
+    echo "Server executable or appmanifest not found, installing fresh server"
+    update_game_files
+    export SERVER_JUST_UPDATED="true"
+    return
+  fi
+
+  if [ "$ALWAYS_UPDATE_ON_START" == "true"]; then
+    echo "Querying Steam API for CS2 build ID"
+    local local_build
+    local_build=$(grep -Po '"buildid"\s+"\K[0-9]+' "$appmanifest")
+
+    local remote_build
+    remote_build=$(curl -s https://api.steamcmd.net/v1/info/730 | jq -r '.data["730"].depots.branches.public.buildid')
+
+    if [ -z "$remote_build" ] || [ "$remote_build" == "null" ]; then
+      echo "WARNING: Failed to fetch remote Build ID. Using SteamCMD to check for updates"
+      update_game_files
+      export SERVER_JUST_UPDATED="true"
+    elif [ "$local_build" != "$remote_build" ]; then
+      echo "Updating: Local Build: $local_build | Remote Build: $remote_build"
+      update_game_files
+      export SERVER_JUST_UPDATED="true"
+    else
+      echo "Server is up to date: $local_build"
+    fi
+  fi
 }
 
 main() {
