@@ -28,12 +28,10 @@ services:
       CSS_URL: ${CSS_URL:-}
 
       EXTRA_PARAMS: >
-        +mat_queue_mode 2
         -nojoy
         -nohltv
         +engine_no_focus_sleep 0
         +fps_max 64
-        +sv_max_usercmd_future_ticks 8
         +sv_hibernate_when_empty 0
 
     volumes:
