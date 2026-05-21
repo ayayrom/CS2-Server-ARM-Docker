@@ -95,11 +95,16 @@ manage_game_server() {
     # if the remote build cannot be found, force a check with steamcmd
     if [ -z "$remote_build" ] || [ "$remote_build" == "null" ]; then
       echo "WARNING: Failed to fetch remote Build ID. Using SteamCMD to check for updates"
-      update_game_files
-      export SERVER_JUST_UPDATED="true"
+      # update_game_files
+      # export SERVER_JUST_UPDATED="true"
     # if the local build is different from the remote build, update
     elif [ "$local_build" != "$remote_build" ]; then
       echo "Updating: Local Build: $local_build | Remote Build: $remote_build"
+
+      patch_gameinfo "remove"
+      pkill -9 FEXServer || true
+      rm -f /tmp/*FEXServer.Socket*
+      
       update_game_files
       export SERVER_JUST_UPDATED="true"
     else
