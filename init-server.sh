@@ -124,11 +124,22 @@ manage_game_server() {
       echo "Updating: Local Build: $local_build | Remote Build: $remote_build"
 
       patch_gameinfo "remove"
+      if [ -d "$GAME_DIR/addons" ]; then
+        echo "Moving active mods to /tmp/addons_stash"
+        rm -rf /tmp/addons_stash
+        mv "$GAME_DIR/addons" /tmp/addons_stash
+      fi
+
       pkill -9 FEXServer || true
       rm -f /tmp/*FEXServer.Socket*
 
       update_game_files
       export SERVER_JUST_UPDATED="true"
+
+      if [ -d "/tmp/addons_stash" ]; then
+        echo "Restoring stashed mods for post-update processing"
+        mv /tmp/addons_stash "$GAME_DIR/addons"
+      fi
     else
       echo "Server is up to date: $local_build"
     fi
