@@ -66,7 +66,29 @@ setup_steamcmd() {
 update_game_files() {
   echo "Running SteamCMD update for 730 (CS2)"
   cd "$STEAMCMD_DIR" || exit 1
-  FEXBash './steamcmd.sh +@sSteamCmdForcePlatformBitness 64 +force_install_dir "/cs2-data" +login anonymous +app_update 730 validate +quit'
+
+  rm -rf "$CS2_DIR/steamapps/downloading"
+  rm -f "$STEAMCMD_DIR/appcache/appinfo.vdf"
+
+  local max_retries=3
+  local attempt=1
+  
+  while [ $attempt -le $max_retries ]; do
+    echo "SteamCMD Update attempt $attempt of $max_retries..."
+    
+    # Check the exit code of SteamCMD
+    if FEXBash './steamcmd.sh +@sSteamCmdForcePlatformBitness 64 +force_install_dir "/cs2-data" +login anonymous +app_update 730 validate +quit'; then
+      echo "SteamCMD update successful."
+      return 0
+    else
+      echo "WARNING: SteamCMD failed with state 0x6 or connection error. Retrying in 5s"
+      rm -rf "$CS2_DIR/steamapps/downloading"
+      sleep 5
+      attempt=$((attempt + 1))
+    fi
+  done
+  
+  echo "ERROR: SteamCMD failed to update after $max_retries attempts. The server will attempt to boot with the existing files."
 }
 
 # makes sure the server is up to date
@@ -104,7 +126,7 @@ manage_game_server() {
       patch_gameinfo "remove"
       pkill -9 FEXServer || true
       rm -f /tmp/*FEXServer.Socket*
-      
+
       update_game_files
       export SERVER_JUST_UPDATED="true"
     else
