@@ -110,6 +110,10 @@ manage_game_server() {
     echo "Querying Steam API for CS2 build ID"
     local local_build
     local_build=$(grep -Po '"buildid"\s+"\K[0-9]+' "$appmanifest")
+    if [ -z "$local_build" ]; then
+      echo "WARNING: Could not parse local build ID. Assuming build 0 to force safe update."
+      local_build="0"
+    fi
 
     local remote_build
     remote_build=$(curl -s https://api.steamcmd.net/v1/info/730 | jq -r '.data["730"].depots.branches.public.buildid')
@@ -123,7 +127,6 @@ manage_game_server() {
     elif [ "$local_build" != "$remote_build" ]; then
       echo "Updating: Local Build: $local_build | Remote Build: $remote_build"
 
-      patch_gameinfo "remove"
       if [ -d "$GAME_DIR/addons" ]; then
         echo "Moving active mods to /tmp/addons_stash"
         rm -rf /tmp/addons_stash
@@ -132,13 +135,15 @@ manage_game_server() {
 
       pkill -9 FEXServer || true
       rm -f /tmp/*FEXServer.Socket*
-      rm -f "$appmanifest"
+      rm -rf "$CS2_DIR/game"
+      rm -rf "$CS2_DIR/steamapps"
 
       update_game_files
       export SERVER_JUST_UPDATED="true"
 
       if [ -d "/tmp/addons_stash" ]; then
         echo "Restoring stashed mods for post-update processing"
+        mkdir -p "$GAME_DIR"
         mv /tmp/addons_stash "$GAME_DIR/addons"
       fi
     else
@@ -206,6 +211,7 @@ disable_mods() {
 }
 
 # fetches remote versions and url for comparison later
+# there is NO fallback for this, 
 fetch_mod_versions() {
   echo "Fetching remote version info"
 
@@ -221,8 +227,11 @@ fetch_mod_versions() {
     MMS_TARGET_URL=$(echo "$mms_api_response" | jq -r 'map(select(.prerelease == true)) | .[0].assets[] | select(.name | contains("linux") and endswith(".tar.gz")) | .browser_download_url')
 
     if [ "$MMS_TARGET_URL" == "null" ] || [ -z "$MMS_TARGET_URL" ]; then
-       echo "ERROR: Failed to fetch MMS from GitHub API. You might be rate-limited by GitHub."
+       echo "ERROR: Failed to fetch MMS from GitHub API. Fallback to last pinned version."
+       MMS_LATEST_FILE="mmsource-2.0.0-git1401-linux"
+       MMS_TARGET_URL="https://github.com/alliedmodders/metamod-source/releases/download/2.0.0.1401/mmsource-2.0.0-git1401-linux.tar.gz"
     fi
+
   else
     MMS_LATEST_FILE="custom-url-defined"
     MMS_TARGET_URL="$MMS_CUSTOM_URL"
