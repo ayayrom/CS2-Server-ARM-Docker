@@ -24,7 +24,8 @@ Thanks to [sa-shiro/Satisfactory-Dedicated-Server-ARM64-Docker](https://github.c
    sudo docker build -t cs2-arm64 -f Dockerfile.generic .
    ```
 
-4. **Run the Docker Image**:  
+4. **Run the Docker Image**:
+   Before you run the docker image, do this: `sudo chmod +x init-server.sh`
    To run the docker image, run the command:
    ```
    sudo docker compose up -d
@@ -34,7 +35,7 @@ Thanks to [sa-shiro/Satisfactory-Dedicated-Server-ARM64-Docker](https://github.c
    sudo docker compose logs -f
    ```
 
-5. **Port Access and Forwarding**:  
+6. **Port Access and Forwarding**:  
    On your router (or Oracle Cloud Security List), open the ports 27015 TCP and UDP. 27015 is the default port for Counter-Strike 2 servers.  
 
    DOCKER WILL BYPASS UFW, so you will not need for any firewall rules.
