@@ -1,5 +1,5 @@
 # CS2 Server on ARM64 using FEX
-Major thanks to [sa-shiro/Satisfactory-Dedicated-Server-ARM64-Docker](https://github.com/ayayrom/Satisfactory-Dedicated-Server-ARM64-Docker), they figured the hardest part out.
+Thanks to [sa-shiro/Satisfactory-Dedicated-Server-ARM64-Docker](https://github.com/ayayrom/Satisfactory-Dedicated-Server-ARM64-Docker), they inspired this project.
 
 ---
 
@@ -10,23 +10,8 @@ Major thanks to [sa-shiro/Satisfactory-Dedicated-Server-ARM64-Docker](https://gi
    `git clone https://github.com/ayayrom/CS2-ARM64-Server-FEX.git`
    Next, you'll want to cd into it using this: `cd CS2-ARM64-Server-FEX`
 
-2. **Setting up file system**:  
-   **WIP, will do something about the security later**  
-   - First, make the directories `cs2-data` and `fex-data`. You can accomplish this by doing `mkdir -p cs2-data fex-data`.
-   - Second, give the directories permission by 
-     - Using `chmod`:
-       ```
-       sudo chmod 777 cs2-data
-       sudo chmod 777 fex-data
-       sudo chmod 777 init-server.sh
-       sudo chmod +x init-server.sh
-       ```
-     - Using `chown` (replace **USER_ID:GROUP_ID** with the desired user's IDs, for example, `1000:1000`):
-       ```
-       sudo chown -R USER_ID:GROUP_ID cs2-data
-       sudo chown -R USER_ID:GROUP_ID fex-data
-       ```
-       (On Oracle Cloud Infrastructure (OCI), by default, the user with the ID `1000:1000` is `opc`. However, since this user is primarily intended for the setup process, it is advisable to utilize the `ubuntu` user with IDs `1001:1001`)
+2. **Environment Setup**:
+   Before building, create your environment configuration file by copying the example by doing `cp .env.example .env` and edit the values as you wish. If you want online play, you must fill out the STEAM_GAMESERVER_API by visiting [Valve's GameServer page](https://steamcommunity.com/dev/managegameservers).
 
 3. **Build the Docker Image**:  
    This section will take about ~15 minutes to compile from source. If it goes beyond that, check to make sure the compilation isn't stuck.  
@@ -52,12 +37,7 @@ Major thanks to [sa-shiro/Satisfactory-Dedicated-Server-ARM64-Docker](https://gi
 5. **Port Access and Forwarding**:  
    On your router (or Oracle Cloud Security List), open the ports 27015 TCP and UDP. 27015 is the default port for Counter-Strike 2 servers.  
 
-   You will also need to allow the port over the firewall. This can be done however your system is built. For this example, I will be showcasing an example of UFW. Run the command to allow port 27015/tcp and udp to communicate to the outside world:
-   ```
-   sudo ufw allow 27015/tcp
-   sudo ufw allow 27015/udp
-   sudo ufw reload
-   ```
+   DOCKER WILL BYPASS UFW, so you will not need for any firewall rules.
 
 Once you finish step 5, congrats! The server is now ready to be used. 
 
@@ -115,6 +95,8 @@ Once you finish step 5, congrats! The server is now ready to be used.
 # Extra Ramblings
 To be honest, a lot of GPT was used to make this project. Most of the time, when I didn't know something, I had it research things for me. This included the majority of the Dockerfile, the optimization of the FEX-Emulator, the parts including FEXRootFSFetcher, and docker compose patch for CounterStrikeSharp. I did not have the knowledge or the time for learning the FEX-Emulator properly.
 
-However, it works. And that I am glad about. And I hope that this works for you, otherwise this was all for naught.
+However, it works.
 
 I have also tried to compress [zThundy/CS2-Server-on-ARM](https://github.com/zThundy/CS2-Server-on-ARM)'s Box64 implementation into a docker compose file, but it was riddled with segmentation faults left and right. When Box64 comes to be more stable, I will attempt it again, but for now, FEX will do.
+
+[FEX](https://github.com/FEX-Emu/FEX) hella goated, yall should check it out

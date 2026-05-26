@@ -14,13 +14,10 @@ services:
     
     # Port-Mapping laut Guide (Outside of Proxy control)
     ports:
-      - "27015:27015/udp"
-      - "27015:27015/tcp"
-      - "27020:27020/udp"
-      - "26900:26900/udp"
-      - "27005:27005/udp"
-
-    restart: unless-stopped
+      - '27015:27015/udp'
+      - '27015:27015/tcp'
+      # add more ports if u want
+    restart: 'unless-stopped'
     ulimits:
       nice:
         soft: -20
