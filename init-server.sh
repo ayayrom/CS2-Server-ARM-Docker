@@ -88,8 +88,6 @@ update_game_files() {
       echo "ERROR: SteamCMD failed completely even after a clean wipe. The container will attempt to boot anyway."
     fi
   fi
-  
-  echo "ERROR: SteamCMD failed to update after $max_retries attempts. The server will attempt to boot with the existing files."
 }
 
 # makes sure the server is up to date
@@ -400,7 +398,7 @@ start_server() {
     while [ $timeout -gt 0 ]; do
       if grep -q "$pattern" /tmp/server_ci.log 2>/dev/null; then
         echo "SUCCESS: Server started correctly"
-        kill $SERVER_PID 2>/dev/null || true
+        pkill -9 FEXServer || true
         exit 0
       fi
       sleep 2
@@ -408,7 +406,7 @@ start_server() {
     done
     echo "ERROR: Server didn't start within the timeout"
     cat /tmp/server_ci.log
-    kill $SERVER_PID 2>/dev/null || true
+    pkill -9 FEXServer || true
     exit 1
   else
     eval "$exec_string"
