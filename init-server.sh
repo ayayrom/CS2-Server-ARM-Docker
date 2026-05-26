@@ -70,23 +70,24 @@ update_game_files() {
   # rm -rf "$CS2_DIR/steamapps/downloading"
   rm -f "$STEAMCMD_DIR/appcache/appinfo.vdf"
 
-  local max_retries=3
-  local attempt=1
   
-  while [ $attempt -le $max_retries ]; do
-    echo "SteamCMD Update attempt $attempt of $max_retries..."
+  if FEXBash './steamcmd.sh +@sSteamCmdForcePlatformBitness 64 +force_install_dir "/cs2-data" +login anonymous +app_update 730 +quit'; then
+    echo "SteamCMD update successful."
+    return 0
+  else
+    echo "WARNING: SteamCMD failed or validation corrupted. Nuking files immediately for a clean install..."
     
-    # Check the exit code of SteamCMD
+    rm -rf "$CS2_DIR/game"
+    rm -rf "$CS2_DIR/steamapps"
+    
+    echo "Initiating fresh download..."
     if FEXBash './steamcmd.sh +@sSteamCmdForcePlatformBitness 64 +force_install_dir "/cs2-data" +login anonymous +app_update 730 +quit'; then
-      echo "SteamCMD update successful."
+      echo "Clean SteamCMD reinstall successful."
       return 0
     else
-      echo "WARNING: SteamCMD failed with state 0x6 or connection error. Retrying in 5s"
-      # rm -rf "$CS2_DIR/steamapps/downloading"
-      sleep 5
-      attempt=$((attempt + 1))
+      echo "ERROR: SteamCMD failed completely even after a clean wipe. The container will attempt to boot anyway."
     fi
-  done
+  fi
   
   echo "ERROR: SteamCMD failed to update after $max_retries attempts. The server will attempt to boot with the existing files."
 }
@@ -135,8 +136,8 @@ manage_game_server() {
 
       pkill -9 FEXServer || true
       rm -f /tmp/*FEXServer.Socket*
-      rm -rf "$CS2_DIR/game"
-      rm -rf "$CS2_DIR/steamapps"
+      # rm -rf "$CS2_DIR/game"
+      # rm -rf "$CS2_DIR/steamapps"
 
       update_game_files
       export SERVER_JUST_UPDATED="true"
