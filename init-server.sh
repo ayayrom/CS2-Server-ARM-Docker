@@ -385,36 +385,17 @@ start_server() {
   local exec_string="exec nice -n $priority taskset -c $allowed_cpus FEXBash \"$cs2_cmd\""
 
   echo "Exec args: $exec_string"
-  # eval "$exec_string"
-
-  # CI/CD friendly execute
-  if [ "${CI_TEST_MODE:-false}" = "true" ]; then
-    echo "CI Test Mode: starting server and looking for pattern"
-    eval "$exec_string" > /tmp/server_ci.log 2>&1 &
-
-    pattern="Loading map"
-    timeout=120
-    while [ $timeout -gt 0 ]; do
-      if grep -q "$pattern" /tmp/server_ci.log 2>/dev/null; then
-        echo "SUCCESS: Server started correctly"
-        pkill -9 FEXServer || true
-        exit 0
-      fi
-      sleep 2
-      timeout=$((timeout - 2))
-    done
-    echo "ERROR: Server didn't start within the timeout"
-    cat /tmp/server_ci.log
-    pkill -9 FEXServer || true
-    exit 1
-  else
-    eval "$exec_string"
-  fi
+  eval "$exec_string"
 }
 
 main() {
   setup_fex
   setup_steamcmd
+	if [ "${CI_TEST_MODE:-false}" = "true" ]; then
+		echo "CI Test Mode detected! FEX and SteamCMD initialized successfully."
+		echo "Skipping 35GB game download and server execution."
+		exit 0
+	fi
   manage_game_server
   manage_modding
   start_server
