@@ -12,7 +12,7 @@ WORKDIR /tmp/FEX
 #CMAKE exclusive to ampere CPUs
 RUN mkdir Build && cd Build && \
         CC=clang CXX=clang++ cmake -DCMAKE_INSTALL_PREFIX=/usr -DCMAKE_BUILD_TYPE=Release -DUSE_LINKER=lld -DENABLE_LTO=True -DBUILD_TESTS=False -DENABLE_ASSERTIONS=False \
-        -DCMAKE_C_FLAGS="-O3 -fno-math-errno" -DCMAKE_CXX_FLAGS="-O3 -fno-math-errno" -DCMAKE_INTERPROCEDURAL_OPTIMIZATION=True \
+        -DCMAKE_C_FLAGS="-march=armv8-a -O3 -fno-math-errno" -DCMAKE_CXX_FLAGS="-march=armv8-a -O3 -fno-math-errno" -DCMAKE_INTERPROCEDURAL_OPTIMIZATION=True \
         -G Ninja .. && ninja && ninja install
 # might downgrade to -O2 if enough issues come up
 
