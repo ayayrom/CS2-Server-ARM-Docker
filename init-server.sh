@@ -16,7 +16,7 @@ if [ "$(id -u)" -eq 0 ]; then
 	usermod -o -u "$PUID" steam
 
 	mkdir -p "$BASE_DIR" "$CS2_DIR" /home/steam/.fex-emu
-	chown -R steam:steam "$BASE_DIR" "$CS2_DIR" /home/steam
+	chown -R steam:steam "$BASE_DIR" "$CS2_DIR" /home/steam 
 
 	exec gosu steam "$0" "$@"
 fi
@@ -57,7 +57,7 @@ setup_steamcmd() {
 	echo "Initializing SteamCMD"
 	cd "$STEAMCMD_DIR" || exit 1
 
-	FEXBash './steamcmd.sh +quit'
+	FEXBash -c './steamcmd.sh +quit'
 
 	mkdir -p /home/steam/.steam/sdk64
 	ln -sfn "$STEAMCMD_DIR/linux64/steamclient.so" /home/steam/.steam/sdk64/steamclient.so
@@ -71,7 +71,7 @@ update_game_files() {
 	# rm -rf "$CS2_DIR/steamapps/downloading"
 	rm -f "$STEAMCMD_DIR/appcache/appinfo.vdf"
 
-	if FEXBash './steamcmd.sh +@sSteamCmdForcePlatformBitness 64 +@nClientDownloadEnableHTTP2 0 +@fDownloadRateImprovementToAddMaxBuffer 8 +force_install_dir "/cs2-base" +login anonymous +app_update 730 +quit'; then
+	if FEXBash -c './steamcmd.sh +@sSteamCmdForcePlatformBitness 64 +@nClientDownloadEnableHTTP2 0 +@fDownloadRateImprovementToAddMaxBuffer 8 +force_install_dir "/cs2-base" +login anonymous +app_update 730 +quit'; then
 		echo "SteamCMD update successful."
 	else
 		echo "WARNING: SteamCMD failed or validation corrupted. Nuking files immediately for a clean install..."
@@ -80,7 +80,7 @@ update_game_files() {
 		rm -rf "$CS2_DIR/steamapps"
 
 		echo "Initiating fresh download..."
-		if FEXBash './steamcmd.sh +@sSteamCmdForcePlatformBitness 64 +@nClientDownloadEnableHTTP2 0 +@fDownloadRateImprovementToAddMaxBuffer 8 +force_install_dir "/cs2-base" +login anonymous +app_update 730 +quit'; then
+		if FEXBash -c './steamcmd.sh +@sSteamCmdForcePlatformBitness 64 +@nClientDownloadEnableHTTP2 0 +@fDownloadRateImprovementToAddMaxBuffer 8 +force_install_dir "/cs2-base" +login anonymous +app_update 730 +quit'; then
 			echo "Clean SteamCMD reinstall successful."
 		else
 			echo "ERROR: SteamCMD failed completely even after a clean wipe. The container will attempt to boot anyway."
@@ -361,7 +361,7 @@ start_server() {
 
 	cs2_cmd="$cs2_cmd $EXTRA_PARAMS"
 
-	local exec_string="exec nice -n $priority taskset -c $allowed_cpus FEXBash \"$cs2_cmd\""
+	local exec_string="exec nice -n $priority taskset -c $allowed_cpus FEXBash -c \"$cs2_cmd\""
 
 	echo "Exec args: $exec_string"
 	eval "$exec_string"

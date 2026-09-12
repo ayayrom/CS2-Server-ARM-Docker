@@ -67,26 +67,26 @@ Once you finish step 5, congrats! The server is now ready to be used.
   - **A**: Yes, however, I have no idea if these options are secure for your system. I am currently using them, but I do not recommend these options if you value security. Input this json in fex-data/Config.json:
     ```
     {
-    "Config": {
-      "SilentLog": "0",
-      "EnableCodeCacheValidation": "0",
-      "X87ReducedPrecision": "1",
-      "StrictInProcessSplitLocks": "0",
-      "DisableTelemetry": "1",
-      "EnableCodeCachingWIP": "0",
-      "DynamicL1Cache": "0",
-      "HalfBarrierTSOEnabled": "0",
-      "KernelUnalignedAtomicBackpatching": "1",
-      "DisableL2Cache": "0",
-      "MaxInst": "5000",
-      "MemcpySetTSOEnabled": "0",
-      "RootFS": "Ubuntu_22_04",
-      "Multiblock": "1",
-      "VectorTSOEnabled": "0",
-      "TSOEnabled": "0",
-      "SMCChecks": "1"
+      "Config": {
+        "SilentLog": "0",
+        "EnableCodeCacheValidation": "0",
+        "X87ReducedPrecision": "1",
+        "StrictInProcessSplitLocks": "0",
+        "DisableTelemetry": "1",
+        "EnableCodeCachingWIP": "0",
+        "DynamicL1Cache": "0",
+        "HalfBarrierTSOEnabled": "0",
+        "KernelUnalignedAtomicBackpatching": "1",
+        "DisableL2Cache": "0",
+        "MaxInst": "20000",
+        "MemcpySetTSOEnabled": "0",
+        "RootFS": "Ubuntu_22_04",
+        "Multiblock": "1",
+        "VectorTSOEnabled": "0",
+        "TSOEnabled": "0",
+        "SMCChecks": "mtrack"
       },
-    "ThunksDB": {}
+      "ThunksDB": {}
     }
     ```
 - **Q**: My question isn't here!
