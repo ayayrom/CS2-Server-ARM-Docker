@@ -6,18 +6,18 @@ STEAMCMD_DIR="/home/steam/Steam"
 export FEX_ROOTFS="/home/steam/.fex-emu/RootFS/Ubuntu_22_04"
 
 if [ "$(id -u)" -eq 0 ]; then
-  echo "Container started as root. Applying PUID/PGID and dropping privileges..."
-  
-  PUID=${PUID:-1001}
-  PGID=${PGID:-1001}
-  
-  groupmod -o -g "$PGID" steam
-  usermod -o -u "$PUID" steam
-  
-  mkdir -p /cs2-data /home/steam/.fex-emu
-  chown -R steam:steam /cs2-data /home/steam
-  
-  exec gosu steam "$0" "$@"
+	echo "Container started as root. Applying PUID/PGID and dropping privileges..."
+
+	PUID=${PUID:-1001}
+	PGID=${PGID:-1001}
+
+	groupmod -o -g "$PGID" steam
+	usermod -o -u "$PUID" steam
+
+	mkdir -p "$BASE_DIR" "$CS2_DIR" /home/steam/.fex-emu
+	chown -R steam:steam "$BASE_DIR" "$CS2_DIR" /home/steam
+
+	exec gosu steam "$0" "$@"
 fi
 
 # downloading fex and setting it up for usage
@@ -64,9 +64,40 @@ setup_steamcmd() {
 
 # helper function to update game files
 update_game_files() {
-  echo "Running SteamCMD update for 730 (CS2)"
-  cd "$STEAMCMD_DIR" || exit 1
-  FEXBash './steamcmd.sh +@sSteamCmdForcePlatformBitness 64 +force_install_dir "/cs2-data" +login anonymous +app_update 730 validate +quit'
+	echo "Running SteamCMD update for 730 (CS2)"
+	cd "$STEAMCMD_DIR" || exit 1
+
+	# rm -rf "$CS2_DIR/steamapps/downloading"
+	rm -f "$STEAMCMD_DIR/appcache/appinfo.vdf"
+
+	if FEXBash './steamcmd.sh +@sSteamCmdForcePlatformBitness 64 +force_install_dir "/cs2-base" +login anonymous +app_update 730 +quit'; then
+		echo "SteamCMD update successful."
+	else
+		echo "WARNING: SteamCMD failed or validation corrupted. Nuking files immediately for a clean install..."
+
+		rm -rf "$CS2_DIR/game"
+		rm -rf "$CS2_DIR/steamapps"
+
+		echo "Initiating fresh download..."
+		if FEXBash './steamcmd.sh +@sSteamCmdForcePlatformBitness 64 +force_install_dir "/cs2-base" +login anonymous +app_update 730 +quit'; then
+			echo "Clean SteamCMD reinstall successful."
+		else
+			echo "ERROR: SteamCMD failed completely even after a clean wipe. The container will attempt to boot anyway."
+		fi
+	fi
+
+	# create symlinks
+	mkdir -p "$CS2_DIR/game"
+	cp -asn "$BASE_DIR/game/." "$CS2_DIR/game/"
+	find "$CS2_DIR/game" -xtype l -delete
+
+	if [ -f "$BASE_DIR/game/bin/linuxsteamrt64/cs2" ]; then
+		rm -f "$CS2_DIR/game/bin/linuxsteamrt64/cs2"
+		cp "$BASE_DIR/game/bin/linuxsteamrt64/cs2" "$CS2_DIR/game/bin/linuxsteamrt64/cs2"
+		chmod +x "$CS2_DIR/game/bin/linuxsteamrt64/cs2"
+	fi
+
+	echo "symlinks updated"
 }
 
 # makes sure the server is up to date
@@ -109,26 +140,23 @@ manage_game_server() {
 
 # patch the gameinfo file for either installation or removal of metamod
 patch_gameinfo() {
-  local action=$1 # arg for "install" or "remove"
-  local gameinfo_path="$GAME_DIR/gameinfo.gi"
+	local action=$1 # arg for "install" or "remove"
+	local base_gameinfo="$BASE_DIR/game/csgo/gameinfo.gi"
+	local modded_gameinfo="$GAME_DIR/gameinfo.gi"
 
-  if [ -f "$gameinfo_path" ]; then
-    if [ "$action" == "install" ] && ! grep -q "addons/metamod" "$gameinfo_path"; then
-      echo "Patching gameinfo.gi for Metamod"
-      sed -i '/Game_LowViolence/a \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ Game\tcsgo/addons/metamod' "$gameinfo_path"
-    elif [ "$action" == "remove" ] && grep -q "addons/metamod" "$gameinfo_path"; then
-      echo "Removing Metamod hook from gameinfo.gi"
-      sed -i '/addons\/metamod/d' "$gameinfo_path"
-    fi
-  fi
-}
+	if [ -f "$base_gameinfo" ]; then
+		# Safely break the symlink to protect the base game
+		rm -f "$modded_gameinfo"
+		cp "$base_gameinfo" "$modded_gameinfo"
 
-enable_mods() {
-  echo "Enabling mods"
-  
-  fetch_mod_versions
-  
-  install_and_update_mods
+		if [ "$action" == "install" ] && ! grep -q "addons/metamod" "$modded_gameinfo"; then
+			echo "Patching isolated gameinfo.gi for Metamod"
+			sed -i '/Game_LowViolence/a \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ Game\tcsgo/addons/metamod' "$modded_gameinfo"
+		elif [ "$action" == "remove" ] && grep -q "addons/metamod" "$modded_gameinfo"; then
+			echo "Removing Metamod hook from isolated gameinfo.gi"
+			sed -i '/addons\/metamod/d' "$modded_gameinfo"
+		fi
+	fi
 }
 
 # disables modding on the server and reverts to vanilla state
@@ -283,7 +311,44 @@ install_and_update_mods() {
     rm -rf /tmp/css_backup
   fi
 
-  patch_gameinfo "install"
+	patch_gameinfo "install"
+}
+
+start_server() {
+	echo "Starting CS2 Server"
+	cd "$CS2_DIR" || exit 1
+
+	export LD_LIBRARY_PATH="$CS2_DIR/game/bin/linuxsteamrt64:$LD_LIBRARY_PATH"
+	pkill -9 FEXServer || true
+
+	# export XDG_RUNTIME_DIR=/tmp
+	# export SDL_VIDEODRIVER=dummy
+	# export SDL_AUDIODRIVER=dummy
+
+	local allowed_cpus
+	allowed_cpus=$(taskset -cp $$ | awk -F': ' '{print $2}')
+	echo "Server allowed for $allowed_cpus cores"
+
+	local thread_count=${CPU_CORE_COUNT:-$(nproc)}
+	echo "Allocating $thread_count threads to CS2"
+
+	local map=${STARTUP_MAP:-de_dust2}
+	local priority=${SERVER_NICENESS:-0}
+
+	local cs2_cmd="./game/bin/linuxsteamrt64/cs2 -dedicated -usercon +map $map -threads $thread_count"
+
+	if [ -n "$STEAM_GAMESERVER_API" ]; then
+		cs2_cmd="$cs2_cmd +sv_setsteamaccount $STEAM_GAMESERVER_API"
+	else
+		echo "WARNING: STEAM_GAMESERVER_API is missing"
+	fi
+
+	cs2_cmd="$cs2_cmd $EXTRA_PARAMS"
+
+	local exec_string="exec nice -n $priority taskset -c $allowed_cpus FEXBash \"$cs2_cmd\""
+
+	echo "Exec args: $exec_string"
+	eval "$exec_string"
 }
 
 # manages the modding state of the server
