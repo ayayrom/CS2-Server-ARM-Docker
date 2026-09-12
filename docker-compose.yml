@@ -11,6 +11,9 @@ services:
       - "27015:27015/tcp"
       # add more ports if u want
     restart: "unless-stopped"
+    dns: 
+      - 1.1.1.1
+      - 8.8.8.8
     ulimits:
       nice:
         soft: -20
