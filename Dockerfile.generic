@@ -5,8 +5,8 @@ SHELL ["/bin/bash", "-c"]
 RUN apt update && DEBIAN_FRONTEND=noninteractive apt install -y git curl python3 sudo cmake ninja-build pkg-config clang llvm lld nasm libsdl2-dev libepoxy-dev libssl-dev python3-dev libstdc++-12-dev squashfs-tools squashfuse qtbase5-dev qtdeclarative5-dev qt5-qmake
 
 WORKDIR /tmp
-# pinned to 2605 for stability
-RUN git clone --recurse-submodules --branch FEX-2605 --depth 1 https://github.com/FEX-Emu/FEX.git
+# pinned to 2609 for stability
+RUN git clone --recurse-submodules --branch FEX-2609 --depth 1 https://github.com/FEX-Emu/FEX.git
 
 WORKDIR /tmp/FEX
 #CMAKE exclusive to ampere CPUs

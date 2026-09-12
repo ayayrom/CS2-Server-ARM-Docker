@@ -137,12 +137,6 @@ manage_game_server() {
 		elif [ "$local_build" != "$remote_build" ]; then
 			echo "Updating: Local Build: $local_build | Remote Build: $remote_build"
 
-			if [ -d "$GAME_DIR/addons" ]; then
-				echo "Moving active mods to /tmp/addons_stash"
-				rm -rf /tmp/addons_stash
-				mv "$GAME_DIR/addons" /tmp/addons_stash
-			fi
-
 			pkill -9 FEXServer || true
 			rm -f /tmp/*FEXServer.Socket*
 			# rm -rf "$CS2_DIR/game"
@@ -150,12 +144,6 @@ manage_game_server() {
 
 			update_game_files
 			export SERVER_JUST_UPDATED="true"
-
-			if [ -d "/tmp/addons_stash" ]; then
-				echo "Restoring stashed mods for post-update processing"
-				mkdir -p "$GAME_DIR"
-				mv /tmp/addons_stash "$GAME_DIR/addons"
-			fi
 		else
 			echo "Server is up to date: $local_build"
 		fi
@@ -189,7 +177,7 @@ disable_mods() {
 	if [ -d "$CSS_DIR" ] || [ -d "$MMS_DIR" ]; then
 		echo "Found mods, creating backup"
 		local backup_dir
-		backup_dir="/cs2-data/mod_backups/backup_$(date +%Y%m%d_%H%M%S)"
+		backup_dir="$CS2_DIR/mod_backups/backup_$(date +%Y%m%d_%H%M%S)"
 		mkdir -p "$backup_dir/counterstrikesharp" "$backup_dir/metamod"
 
 		# backup CounterStrikeSharp
