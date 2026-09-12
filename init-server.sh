@@ -71,7 +71,7 @@ update_game_files() {
 	# rm -rf "$CS2_DIR/steamapps/downloading"
 	rm -f "$STEAMCMD_DIR/appcache/appinfo.vdf"
 
-	if FEXBash './steamcmd.sh +@sSteamCmdForcePlatformBitness 64 +force_install_dir "/cs2-base" +login anonymous +app_update 730 +quit'; then
+	if FEXBash './steamcmd.sh +@sSteamCmdForcePlatformBitness 64 +@nClientDownloadEnableHTTP2 0 +@fDownloadRateImprovementToAddMaxBuffer 8 +force_install_dir "/cs2-base" +login anonymous +app_update 730 +quit'; then
 		echo "SteamCMD update successful."
 	else
 		echo "WARNING: SteamCMD failed or validation corrupted. Nuking files immediately for a clean install..."
@@ -80,7 +80,7 @@ update_game_files() {
 		rm -rf "$CS2_DIR/steamapps"
 
 		echo "Initiating fresh download..."
-		if FEXBash './steamcmd.sh +@sSteamCmdForcePlatformBitness 64 +force_install_dir "/cs2-base" +login anonymous +app_update 730 +quit'; then
+		if FEXBash './steamcmd.sh +@sSteamCmdForcePlatformBitness 64 +@nClientDownloadEnableHTTP2 0 +@fDownloadRateImprovementToAddMaxBuffer 8 +force_install_dir "/cs2-base" +login anonymous +app_update 730 +quit'; then
 			echo "Clean SteamCMD reinstall successful."
 		else
 			echo "ERROR: SteamCMD failed completely even after a clean wipe. The container will attempt to boot anyway."
