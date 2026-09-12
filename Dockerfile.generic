@@ -38,3 +38,9 @@ RUN curl -sqL "https://steamcdn-a.akamaihd.net/client/installer/steamcmd_linux.t
 
 WORKDIR /home/steam
 ENTRYPOINT ["/bin/bash"]
+
+COPY init-server.sh /home/steam/init-server.sh
+RUN chmod +x /home/steam/init-server.sh
+
+WORKDIR /home/steam
+ENTRYPOINT ["/home/steam/init-server.sh"]
