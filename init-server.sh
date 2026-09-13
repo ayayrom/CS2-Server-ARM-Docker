@@ -228,7 +228,7 @@ fetch_mod_versions() {
 		fi
 
 	else
-		MMS_LATEST_FILE="custom-url-defined"
+		MMS_LATEST_FILE="$MMS_CUSTOM_URL"
 		MMS_TARGET_URL="$MMS_CUSTOM_URL"
 	fi
 
@@ -243,7 +243,7 @@ fetch_mod_versions() {
 			CSS_TARGET_URL="https://github.com/roflmuffin/CounterStrikeSharp/releases/download/v1.0.368/counterstrikesharp-with-runtime-linux-1.0.368.zip"
 		fi
 	else
-		CSS_LATEST_TAG="custom-url-defined"
+		CSS_LATEST_TAG="$CSS_CUSTOM_URL"
 		CSS_TARGET_URL="$CSS_CUSTOM_URL"
 	fi
 }
@@ -256,8 +256,8 @@ install_and_update_mods() {
 	# checks if metamod is missing
 	if [ ! -f "$GAME_DIR/addons/metamod.vdf" ] || [ ! -f "$MMS_VERSION_FILE" ]; then
 		update_mms=true
-	# checks if metamod version is outdated/weird
-	elif [ "$(cat "$MMS_VERSION_FILE")" != "$MMS_LATEST_FILE" ] && [ -z "$MMS_CUSTOM_URL" ]; then
+	# checks if metamod version is outdated or custom URL changed
+	elif [ "$(cat "$MMS_VERSION_FILE")" != "$MMS_LATEST_FILE" ]; then
 		echo "Metamod update: $(cat "$MMS_VERSION_FILE") ->  $MMS_LATEST_FILE"
 		update_mms=true
 	fi
@@ -265,8 +265,8 @@ install_and_update_mods() {
 	# checks if counterstrikesharp is missing
 	if [ ! -f "$CSS_DIR/bin/linuxsteamrt64/counterstrikesharp.so" ] || [ ! -f "$CSS_VERSION_FILE" ]; then
 		update_css=true
-	# checks if counterstrikesharp is outdated/weird
-	elif [ "$(cat "$CSS_VERSION_FILE")" != "$CSS_LATEST_TAG" ] && [ -z "$CSS_CUSTOM_URL" ]; then
+	# checks if counterstrikesharp is outdated or custom URL changed
+	elif [ "$(cat "$CSS_VERSION_FILE")" != "$CSS_LATEST_TAG" ]; then
 		echo "CounterStrikeSharp update: $(cat "$CSS_VERSION_FILE") -> $CSS_LATEST_TAG"
 		update_css=true
 	fi
