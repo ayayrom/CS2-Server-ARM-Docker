@@ -16,7 +16,7 @@ if [ "$(id -u)" -eq 0 ]; then
 	usermod -o -u "$PUID" steam
 
 	mkdir -p "$BASE_DIR" "$CS2_DIR" /home/steam/.fex-emu
-	chown -R steam:steam "$BASE_DIR" "$CS2_DIR" /home/steam 
+	chown -R steam:steam "$BASE_DIR" "$CS2_DIR" /home/steam
 
 	exec gosu steam "$0" "$@"
 fi
@@ -233,10 +233,13 @@ fetch_mod_versions() {
 	fi
 
 	if [ -z "$CSS_CUSTOM_URL" ]; then
-		CSS_LATEST_TAG=$(curl -s https://api.github.com/repos/roflmuffin/CounterStrikeSharp/releases/latest | jq -r '.tag_name')
-		CSS_TARGET_URL=$(curl -s "https://api.github.com/repos/roflmuffin/CounterStrikeSharp/releases/tags/$CSS_LATEST_TAG" | jq -r '.assets[] | select(.name | startswith("counterstrikesharp-with-runtime-linux")) | .browser_download_url')
+		echo "Querying GitHub API for latest CounterStrikeSharp pre-release..."
+		local css_api_response
+		css_api_response=$(curl -s https://api.github.com/repos/roflmuffin/CounterStrikeSharp/releases)
 
-		# fallback if instance has been restarted too many times
+		CSS_LATEST_TAG=$(echo "$css_api_response" | jq -r '.[0].tag_name')
+		CSS_TARGET_URL=$(echo "$css_api_response" | jq -r '.[0].assets[] | select(.name | startswith("counterstrikesharp-with-runtime-linux")) | .browser_download_url')
+
 		if [ "$CSS_TARGET_URL" == "null" ] || [ -z "$CSS_TARGET_URL" ]; then
 			echo "ERROR: Failed to fetch CSS from GitHub API. Falling back to stable build..."
 			CSS_LATEST_TAG="v1.0.368"
@@ -254,10 +257,15 @@ install_and_update_mods() {
 	local update_css=false
 
 	# checks if metamod is missing
-	if [ ! -f "$GAME_DIR/addons/metamod.vdf" ] || [ ! -f "$MMS_VERSION_FILE" ]; then
+	if [ -n "$MMS_CUSTOM_URL" ]; then
+		# do a custom metamod version instead
+		echo "Custom Metamod URL detected. Forcing fresh wipe and installation..."
 		update_mms=true
-	# checks if metamod version is outdated or custom URL changed
+	elif [ ! -f "$GAME_DIR/addons/metamod.vdf" ] || [ ! -f "$MMS_VERSION_FILE" ]; then
+		# checks if we are missing mms
+		update_mms=true
 	elif [ "$(cat "$MMS_VERSION_FILE")" != "$MMS_LATEST_FILE" ]; then
+		# updates MMS
 		echo "Metamod update: $(cat "$MMS_VERSION_FILE") ->  $MMS_LATEST_FILE"
 		update_mms=true
 	fi
@@ -267,6 +275,20 @@ install_and_update_mods() {
 		update_css=true
 	# checks if counterstrikesharp is outdated or custom URL changed
 	elif [ "$(cat "$CSS_VERSION_FILE")" != "$CSS_LATEST_TAG" ]; then
+		echo "CounterStrikeSharp update: $(cat "$CSS_VERSION_FILE") -> $CSS_LATEST_TAG"
+		update_css=true
+	fi
+  
+	# checks if counterstrikesharp is missing
+	if [ -n "$CSS_CUSTOM_URL" ]; then
+    # do a custom css version
+		echo "Custom CounterStrikeSharp URL detected. Forcing fresh wipe and installation..."
+		update_css=true
+	elif [ ! -f "$CSS_DIR/bin/linuxsteamrt64/counterstrikesharp.so" ] || [ ! -f "$CSS_VERSION_FILE" ]; then
+    # checks if we are missing css
+		update_css=true
+	elif [ "$(cat "$CSS_VERSION_FILE")" != "$CSS_LATEST_TAG" ]; then
+		# checks if counterstrikesharp is outdated or custom URL changed
 		echo "CounterStrikeSharp update: $(cat "$CSS_VERSION_FILE") -> $CSS_LATEST_TAG"
 		update_css=true
 	fi
