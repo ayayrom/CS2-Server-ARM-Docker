@@ -63,28 +63,85 @@ setup_steamcmd() {
 	ln -sfn "$STEAMCMD_DIR/linux64/steamclient.so" /home/steam/.steam/sdk64/steamclient.so
 }
 
+# reads one field (StateFlags, buildid, UpdateResult, ...) out of the 730 appmanifest
+manifest_field() {
+	grep -Po "\"$1\"\s+\"\K[^\"]+" "$BASE_DIR/steamapps/appmanifest_730.acf" 2>/dev/null | head -n1
+}
+
+# one app_update pass. $1 may be "validate".
+# success = steamcmd exits clean AND the manifest says "fully installed" (StateFlags 4)
+steamcmd_app_update() {
+	local validate=${1:-}
+
+	rm -f "$STEAMCMD_DIR/appcache/appinfo.vdf"
+
+	FEXBash -c "./steamcmd.sh +@sSteamCmdForcePlatformBitness 64 +force_install_dir \"$BASE_DIR\" +login anonymous +app_update 730 $validate +quit" || return 1
+
+	[ "$(manifest_field StateFlags)" == "4" ]
+}
+
+# prints the real reason steamcmd gave up (it is in content_log.txt, not on stdout)
+report_steamcmd_failure() {
+	echo "---- SteamCMD diagnostics ----"
+	echo "appmanifest: StateFlags=$(manifest_field StateFlags) UpdateResult=$(manifest_field UpdateResult) buildid=$(manifest_field buildid) TargetBuildID=$(manifest_field TargetBuildID)"
+	df -h "$BASE_DIR"
+	if [ -f "$STEAMCMD_DIR/logs/content_log.txt" ]; then
+		echo "last lines of content_log.txt:"
+		tail -n 25 "$STEAMCMD_DIR/logs/content_log.txt"
+	fi
+	echo "------------------------------"
+}
+
 # helper function to update game files
+# returns 0 only if the game is actually up to date afterwards
 update_game_files() {
 	echo "Running SteamCMD update for 730 (CS2)"
 	cd "$STEAMCMD_DIR" || exit 1
 
-	# rm -rf "$CS2_DIR/steamapps/downloading"
-	rm -f "$STEAMCMD_DIR/appcache/appinfo.vdf"
+	local appmanifest="$BASE_DIR/steamapps/appmanifest_730.acf"
+	local max_attempts=${STEAMCMD_RETRIES:-3}
+	local attempt
+	local updated=false
 
-	if FEXBash -c './steamcmd.sh +@sSteamCmdForcePlatformBitness 64 +force_install_dir "/cs2-base" +login anonymous +app_update 730 +quit'; then
-		echo "SteamCMD update successful."
-	else
-		echo "WARNING: SteamCMD failed or validation corrupted. Nuking files immediately for a clean install..."
-
-		rm -rf "$CS2_DIR/game"
-		rm -rf "$CS2_DIR/steamapps"
-
-		echo "Initiating fresh download..."
-		if FEXBash -c './steamcmd.sh +@sSteamCmdForcePlatformBitness 64 +force_install_dir "/cs2-base" +login anonymous +app_update 730 +quit'; then
-			echo "Clean SteamCMD reinstall successful."
-		else
-			echo "ERROR: SteamCMD failed completely even after a clean wipe. The container will attempt to boot anyway."
+	# pass 1: plain update, retried. 0x6 is very often a transient
+	# "couldn't fetch depot manifests" failure that a retry gets past.
+	for ((attempt = 1; attempt <= max_attempts; attempt++)); do
+		echo "SteamCMD update attempt $attempt/$max_attempts"
+		if steamcmd_app_update; then
+			updated=true
+			break
 		fi
+		echo "WARNING: SteamCMD update attempt $attempt failed."
+		report_steamcmd_failure
+		[ "$attempt" -lt "$max_attempts" ] && sleep 15
+	done
+
+	# pass 2: reset Steam's own bookkeeping in the BASE dir (never the modded
+	# overlay) and let it re-verify the files that are already on disk.
+	# moving the appmanifest aside does not delete game files; steamcmd
+	# rediscovers them during validation and only downloads what differs.
+	if [ "$updated" != "true" ]; then
+		echo "WARNING: Resetting Steam install state in $BASE_DIR and validating existing files..."
+		rm -rf "$BASE_DIR/steamapps/downloading" "$BASE_DIR/steamapps/temp"
+		[ -f "$appmanifest" ] && mv -f "$appmanifest" "$appmanifest.bak"
+
+		if steamcmd_app_update validate; then
+			updated=true
+			rm -f "$appmanifest.bak"
+		else
+			report_steamcmd_failure
+			# keep the old manifest so the next start still knows the local build
+			if [ ! -f "$appmanifest" ] && [ -f "$appmanifest.bak" ]; then
+				mv -f "$appmanifest.bak" "$appmanifest"
+			fi
+		fi
+	fi
+
+	if [ "$updated" == "true" ]; then
+		echo "SteamCMD update successful. Build: $(manifest_field buildid)"
+	else
+		echo "ERROR: SteamCMD could not update CS2. The server files are still on build $(manifest_field buildid)."
+		echo "ERROR: Clients on the current game version will be rejected until the update succeeds."
 	fi
 
 	# create symlinks
@@ -99,6 +156,8 @@ update_game_files() {
 	fi
 
 	echo "symlinks updated"
+
+	[ "$updated" == "true" ]
 }
 
 # makes sure the server is up to date
@@ -111,8 +170,12 @@ manage_game_server() {
 	# checking if the game files exist
 	if [ ! -f "$CS2_DIR/game/bin/linuxsteamrt64/cs2" ] || [ ! -f "$appmanifest" ] || [ ! -f "$gameinfo_path" ]; then
 		echo "Server executable, appmanifest, or gameinfo.gi not found! Installing fresh server..."
-		update_game_files
-		export SERVER_JUST_UPDATED="true"
+		if update_game_files; then
+			export SERVER_JUST_UPDATED="true"
+		elif [ ! -f "$CS2_DIR/game/bin/linuxsteamrt64/cs2" ]; then
+			echo "ERROR: No server executable and the install failed. Exiting so the container can retry."
+			exit 1
+		fi
 		return
 	fi
 
@@ -139,11 +202,10 @@ manage_game_server() {
 
 			pkill -9 FEXServer || true
 			rm -f /tmp/*FEXServer.Socket*
-			# rm -rf "$CS2_DIR/game"
-			# rm -rf "$CS2_DIR/steamapps"
 
-			update_game_files
-			export SERVER_JUST_UPDATED="true"
+			if update_game_files; then
+				export SERVER_JUST_UPDATED="true"
+			fi
 		else
 			echo "Server is up to date: $local_build"
 		fi
